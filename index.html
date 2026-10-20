@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>国考关注岗位报名监控</title>
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --card: #fff;
+      --text: #1a1a1a;
+      --muted: #667085;
+      --border: #e4e7ec;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --danger: #dc2626;
+      --ok: #059669;
+      --warn: #d97706;
+      --row-hover: #f8fafc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .wrap { max-width: none; margin: 0; padding: 16px 20px 40px; }
+    header {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+    }
+    h1 { margin: 0 0 6px; font-size: 1.35rem; font-weight: 700; }
+    .meta { color: var(--muted); font-size: 0.85rem; }
+    .meta a { color: var(--primary); text-decoration: none; }
+    .meta a:hover { text-decoration: underline; }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      margin-top: 12px;
+    }
+    input[type="search"] {
+      flex: 1; min-width: 180px;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    input[type="search"]:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+    select#region {
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: #fff;
+      min-width: 140px;
+    }
+    button#refreshBtn {
+      padding: 9px 16px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button#refreshBtn:hover { background: var(--primary-hover); }
+    button#refreshBtn:disabled { opacity: 0.6; cursor: wait; }
+    .chips {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-top: 10px;
+    }
+    .chip {
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #fff;
+      font-size: 0.78rem;
+      cursor: pointer;
+      color: var(--muted);
+    }
+    .chip:hover { border-color: var(--primary); color: var(--primary); }
+    .chip.active {
+      background: #eff6ff;
+      border-color: var(--primary);
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .stats {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin-bottom: 12px;
+    }
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      min-width: 100px;
+    }
+    .stat .label { color: var(--muted); font-size: 0.75rem; }
+    .stat .value { font-size: 1.15rem; font-weight: 700; }
+    .table-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: auto;
+      max-height: calc(100vh - 280px);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      table-layout: fixed;
+    }
+    col.c-score { width: 52px; }
+    col.c-bureau { width: 14%; }
+    col.c-pos { width: 12%; }
+    col.c-code { width: 110px; }
+    col.c-num { width: 64px; }
+    col.c-ratio { width: 88px; }
+    col.c-region { width: 72px; }
+    col.c-place { width: 10%; }
+    col.c-note { width: auto; }
+    col.c-status { width: 88px; }
+    th, td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    th {
+      background: #f8fafc;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      white-space: nowrap;
+    }
+    tr:hover td { background: var(--row-hover); }
+    td.mono { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    td.note {
+      white-space: normal;
+      line-height: 1.4;
+      color: #334155;
+    }
+    .ratio { font-weight: 700; color: var(--danger); white-space: nowrap; }
+    .ratio.mid { color: var(--warn); }
+    .ratio.low { color: var(--ok); }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge.ok { background: #d1fae5; color: #065f46; }
+    .badge.miss { background: #fef3c7; color: #92400e; }
+    .empty { padding: 36px; text-align: center; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>国考关注岗位报名监控</h1>
+      <div class="meta">
+        官网报名：<a href="http://bm.scs.gov.cn/kl2027" target="_blank" rel="noopener">http://bm.scs.gov.cn/kl2027</a>
+      </div>
+      <div class="toolbar">
+        <input type="search" id="q" placeholder="搜索 司局 / 职位 / 代码 / 地点…" />
+        <select id="region" aria-label="地区筛选">
+          <option value="">全部地区</option>
+        </select>
+        <button id="refreshBtn" type="button">刷新数据</button>
+        <span class="meta" id="lastUpdate">上次更新：—</span>
+      </div>
+      <div class="chips" id="regionChips"></div>
+    </header>
+
+    <div class="stats">
+      <div class="stat"><div class="label">关注岗位</div><div class="value" id="sTotal">—</div></div>
+      <div class="stat"><div class="label">已匹配粉笔</div><div class="value" id="sMatched">—</div></div>
+      <div class="stat"><div class="label">暂无数据</div><div class="value" id="sUnmatched">—</div></div>
+      <div class="stat"><div class="label">当前筛选</div><div class="value" id="sShown">—</div></div>
+    </div>
+
+    <div class="table-card">
+      <table>
+        <colgroup>
+          <col class="c-score" />
+          <col class="c-bureau" />
+          <col class="c-pos" />
+          <col class="c-code" />
+          <col class="c-num" />
+          <col class="c-num" />
+          <col class="c-ratio" />
+          <col class="c-region" />
+          <col class="c-place" />
+          <col class="c-note" />
+          <col class="c-status" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>优先级</th>
+            <th>用人司局</th>
+            <th>招考职位</th>
+            <th>职位代码</th>
+            <th>招录</th>
+            <th>过审</th>
+            <th>竞争比</th>
+            <th>地区</th>
+            <th>工作地点</th>
+            <th>备注</th>
+            <th>状态</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="11" class="empty">加载中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let allRows = [];
+    let updatedAt = null;
+    let regionFilter = "";
+
+    function esc(s) {
+      if (s == null) return "";
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function ratioClass(r) {
+      if (r == null) return "";
+      if (r >= 30) return "ratio";
+      if (r >= 10) return "ratio mid";
+      return "ratio low";
+    }
+
+    function regionOf(r) {
+      return (r.region || "").trim() || "未知";
+    }
+
+    function buildRegionUI() {
+      const counts = {};
+      allRows.forEach((r) => {
+        const reg = regionOf(r);
+        counts[reg] = (counts[reg] || 0) + 1;
+      });
+      const regions = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b, "zh"));
+
+      const sel = document.getElementById("region");
+      const cur = regionFilter;
+      sel.innerHTML = '<option value="">全部地区</option>' +
+        regions.map((reg) =>
+          `<option value="${esc(reg)}"${reg === cur ? " selected" : ""}>${esc(reg)}（${counts[reg]}）</option>`
+        ).join("");
+
+      const chips = document.getElementById("regionChips");
+      chips.innerHTML =
+        `<button type="button" class="chip${!cur ? " active" : ""}" data-region="">全部</button>` +
+        regions.map((reg) =>
+          `<button type="button" class="chip${cur === reg ? " active" : ""}" data-region="${esc(reg)}">${esc(reg)} ${counts[reg]}</button>`
+        ).join("");
+      chips.querySelectorAll(".chip").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          regionFilter = btn.getAttribute("data-region") || "";
+          sel.value = regionFilter;
+          render();
+          buildRegionUI();
+        });
+      });
+    }
+
+    function filteredRows() {
+      const q = (document.getElementById("q").value || "").trim().toLowerCase();
+      return allRows.filter((r) => {
+        if (regionFilter && regionOf(r) !== regionFilter) return false;
+        if (!q) return true;
+        const hay = [
+          r.bureau, r.position, r.position_code, r.dept_name,
+          r.work_place, r.region, r.note, r.major
+        ].map((x) => (x == null ? "" : String(x).toLowerCase())).join(" ");
+        return hay.includes(q);
+      });
+    }
+
+    function render() {
+      const rows = filteredRows();
+      document.getElementById("sShown").textContent = rows.length;
+      document.getElementById("lastUpdate").textContent =
+        "上次更新：" + (updatedAt || "—") + "（Asia/Shanghai）";
+
+      const tb = document.getElementById("tbody");
+      if (!rows.length) {
+        tb.innerHTML = '<tr><td colspan="11" class="empty">无匹配结果</td></tr>';
+        return;
+      }
+
+      tb.innerHTML = rows.map((r) => {
+        const passed = r.matched && r.passed != null ? r.passed : null;
+        const ratio = r.ratio != null ? r.ratio.toFixed(1) + ":1" : "—";
+        const status = r.matched
+          ? '<span class="badge ok">已匹配</span>'
+          : '<span class="badge miss">暂无</span>';
+        const note = (r.note || "").replace(/\s+/g, " ").trim();
+        return `<tr>
+          <td class="mono">${esc(r.score)}</td>
+          <td>${esc(r.bureau)}</td>
+          <td>${esc(r.position)}</td>
+          <td class="mono">${esc(r.position_code)}</td>
+          <td class="mono">${esc(r.recruit)}</td>
+          <td class="mono">${passed != null ? esc(passed) : "—"}</td>
+          <td class="${ratioClass(r.ratio)}">${ratio}</td>
+          <td>${esc(regionOf(r))}</td>
+          <td>${esc(r.work_place)}</td>
+          <td class="note" title="${esc(note)}">${esc(note)}</td>
+          <td>${status}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    async function loadPositions() {
+      const res = await fetch("/api/positions");
+      const data = await res.json();
+      allRows = data.positions || [];
+      updatedAt = data.updated_at;
+      document.getElementById("sTotal").textContent = data.total ?? allRows.length;
+      document.getElementById("sMatched").textContent = data.matched ?? "—";
+      document.getElementById("sUnmatched").textContent = data.unmatched ?? "—";
+      buildRegionUI();
+      render();
+    }
+
+    async function doRefresh() {
+      const btn = document.getElementById("refreshBtn");
+      btn.disabled = true;
+      btn.textContent = "刷新中…";
+      try {
+        await fetch("/api/refresh", { method: "POST" });
+        await loadPositions();
+      } catch (e) {
+        alert("刷新失败：" + e);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "刷新数据";
+      }
+    }
+
+    document.getElementById("q").addEventListener("input", render);
+    document.getElementById("region").addEventListener("change", (e) => {
+      regionFilter = e.target.value || "";
+      buildRegionUI();
+      render();
+    });
+    document.getElementById("refreshBtn").addEventListener("click", doRefresh);
+    loadPositions();
+    setInterval(loadPositions, 60000);
+  </script>
+</body>
+</html>
